@@ -5,7 +5,7 @@ import { MemoryRepository } from "./repository.js";
 describe("sync history", () => {
   it("saves snapshots and returns stats", async () => {
     const service = createWordsmithService(new MemoryRepository());
-    const inspected = await service.inspect({ notionUrlOrId: "demo" });
+    const inspected = await service.inspect({ notionUrlOrId: "11111111-1111-4111-8111-111111111111" });
     const manuscript = await service.createManuscript({
       name: inspected.name,
       notionRootId: inspected.notionRootId,
@@ -22,3 +22,4 @@ describe("sync history", () => {
     expect(stats?.chapters).toHaveLength(3);
   });
 });
+

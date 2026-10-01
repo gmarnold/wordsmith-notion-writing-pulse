@@ -66,7 +66,8 @@ export function countWords(text: string): number {
   const normalized = text
     .normalize("NFC")
     .replace(/[\u2018\u2019]/gu, "'")
-    .replace(/[\u2013\u2014]/gu, " ");
+    .replace(/[\u2013\u2014]/gu, " ")
+    .replace(/(?<=\p{N}),(?=\p{N})/gu, "");
 
   const matches = normalized.match(/[\p{L}\p{N}]+(?:['-][\p{L}\p{N}]+)*/gu);
   return matches?.length ?? 0;
@@ -75,3 +76,4 @@ export function countWords(text: string): number {
 export function countRichTextWords(spans: RichTextSpan[]): number {
   return countWords(spans.map((span) => span.plain_text ?? "").join(""));
 }
+

@@ -12,3 +12,4 @@ apps/web/.env
 .DS_Store
 .idea/
 .vscode/
+*.tsbuildinfo

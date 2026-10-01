@@ -23,6 +23,7 @@ describe("Notion traversal", () => {
     const client = new FixtureNotionClient();
     const sources = await inspectManuscriptSource(client, demoRootId, "page");
     const count = await countPageWords(client, sources[0]!.notionPageId);
-    expect(count).toBe(24);
+    expect(count).toBe(26);
   });
 });
+

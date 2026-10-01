@@ -9,13 +9,14 @@
     "packages/*"
   ],
   "scripts": {
-    "dev": "npm run dev --workspaces --if-present",
+    "build:packages": "npm run build -w @wordsmith/shared && npm run build -w @wordsmith/notion",
+    "dev": "npm run build:packages && node scripts/dev.mjs",
     "dev:api": "npm run dev -w @wordsmith/api",
     "dev:web": "npm run dev -w @wordsmith/web",
     "build": "npm run build --workspaces --if-present",
     "lint": "eslint .",
     "format": "prettier --write .",
-    "test": "vitest run",
+    "test": "vitest run --config vitest.config.ts",
     "test:watch": "vitest",
     "typecheck": "tsc -b",
     "db:generate": "npm run db:generate -w @wordsmith/api",
@@ -47,3 +48,4 @@
     "npm": ">=10.0.0"
   }
 }
+
