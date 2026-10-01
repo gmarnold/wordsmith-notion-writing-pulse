@@ -1,0 +1,19 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: wordsmith
+      POSTGRES_PASSWORD: wordsmith
+      POSTGRES_DB: wordsmith
+    volumes:
+      - wordsmith-postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U wordsmith -d wordsmith"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  wordsmith-postgres:

@@ -1,0 +1,49 @@
+{
+  "name": "wordsmith-notion-writing-pulse",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Writing progress analytics for Notion manuscript projects.",
+  "type": "module",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspaces --if-present",
+    "dev:api": "npm run dev -w @wordsmith/api",
+    "dev:web": "npm run dev -w @wordsmith/web",
+    "build": "npm run build --workspaces --if-present",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc -b",
+    "db:generate": "npm run db:generate -w @wordsmith/api",
+    "db:migrate": "npm run db:migrate -w @wordsmith/api",
+    "e2e": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.48.2",
+    "@testing-library/jest-dom": "^6.6.3",
+    "@testing-library/react": "^16.0.1",
+    "@types/node": "^22.9.0",
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "@typescript-eslint/eslint-plugin": "^8.15.0",
+    "@typescript-eslint/parser": "^8.15.0",
+    "@vitejs/plugin-react": "^4.3.3",
+    "eslint": "^9.15.0",
+    "eslint-plugin-react-hooks": "^5.0.0",
+    "jsdom": "^25.0.1",
+    "playwright": "^1.48.2",
+    "prettier": "^3.3.3",
+    "tsx": "^4.19.2",
+    "typescript": "^5.6.3",
+    "vite": "^5.4.11",
+    "vitest": "^2.1.5"
+  },
+  "engines": {
+    "node": ">=22.0.0",
+    "npm": ">=10.0.0"
+  }
+}

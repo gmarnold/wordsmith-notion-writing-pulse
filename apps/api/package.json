@@ -1,0 +1,29 @@
+{
+  "name": "@wordsmith/api",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc -b",
+    "typecheck": "tsc -b",
+    "test": "vitest run",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate"
+  },
+  "dependencies": {
+    "@fastify/cors": "^10.0.1",
+    "@notionhq/client": "^2.2.15",
+    "@wordsmith/notion": "0.1.0",
+    "@wordsmith/shared": "0.1.0",
+    "dotenv": "^16.4.5",
+    "drizzle-orm": "^0.36.4",
+    "fastify": "^5.0.0",
+    "postgres": "^3.4.5",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "drizzle-kit": "^0.28.1"
+  }
+}
