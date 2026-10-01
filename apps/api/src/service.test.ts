@@ -1,9 +1,15 @@
-import { describe, expect, it } from "vitest";
-import { createWordsmithService } from "./service.js";
-import { MemoryRepository } from "./repository.js";
+import { beforeAll, describe, expect, it, vi } from "vitest";
+
+beforeAll(() => {
+  vi.stubEnv("WORDSMITH_DEMO_MODE", "true");
+  vi.stubEnv("NOTION_TOKEN", "");
+  vi.stubEnv("DATABASE_URL", "postgresql://wordsmith:wordsmith@localhost:5432/wordsmith");
+});
 
 describe("sync history", () => {
   it("saves snapshots and returns stats", async () => {
+    const { createWordsmithService } = await import("./service.js");
+    const { MemoryRepository } = await import("./repository.js");
     const service = createWordsmithService(new MemoryRepository());
     const inspected = await service.inspect({ notionUrlOrId: "11111111-1111-4111-8111-111111111111" });
     const manuscript = await service.createManuscript({

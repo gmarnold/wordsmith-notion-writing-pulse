@@ -25,7 +25,7 @@ export function createWordsmithService(repository: Repository) {
         return { configured: false, mode: "notion", reachable: false, message: "Add NOTION_TOKEN to apps/api/.env." };
       }
       try {
-        const client = new Client({ auth: config.NOTION_TOKEN });
+        const client = new Client({ auth: config.NOTION_TOKEN, notionVersion: "2026-03-11" });
         const response = await client.users.me({});
         return { configured: true, mode: "notion", reachable: true, workspaceName: safeBotName(response) };
       } catch {
@@ -39,18 +39,34 @@ export function createWordsmithService(repository: Repository) {
       try {
         rootId = config.WORDSMITH_DEMO_MODE ? demoRootId : normalizeNotionId(request.notionUrlOrId);
       } catch {
-        throw new ApiProblem(400, "INVALID_NOTION_ID", "Paste a valid Notion page or database URL.");
+        throw new ApiProblem(400, "INVALID_NOTION_ID", "Paste a valid Notion page, database, or data source URL.");
       }
       const rootType = inferRootType(request.notionUrlOrId);
       let sources;
       try {
         sources = await inspectManuscriptSource(notionClient, rootId, rootType);
       } catch {
-        throw new ApiProblem(403, "NOTION_PAGE_INACCESSIBLE", "Wordsmith is connected to Notion, but this page has not been shared with the connection or is inaccessible.");
+        throw new ApiProblem(403, "NOTION_SOURCE_INACCESSIBLE", "Wordsmith is connected to Notion, but this page or database has not been shared with the connection, or the pasted URL points to an inaccessible view/source.");
       }
-      const sourcesWithCounts = await Promise.all(
-        sources.map(async (source) => ({ ...source, wordCount: await countPageWords(notionClient, source.notionPageId) }))
-      );
+
+      const sourcesWithCounts = [];
+      const countFailures: string[] = [];
+      for (const source of sources) {
+        try {
+          sourcesWithCounts.push({ ...source, wordCount: await countPageWords(notionClient, source.notionPageId) });
+        } catch {
+          countFailures.push(source.title);
+        }
+      }
+
+      if (countFailures.length > 0) {
+        throw new ApiProblem(
+          403,
+          "NOTION_PAGE_COUNT_FAILED",
+          `Wordsmith found the manuscript source, but could not read ${countFailures.length === 1 ? "this page" : "these pages"}: ${countFailures.join(", ")}. Share the page or its parent with the Wordsmith connection, then try again.`
+        );
+      }
+
       return {
         name: config.WORDSMITH_DEMO_MODE ? "Demo Manuscript" : "Notion manuscript",
         notionRootId: rootId,

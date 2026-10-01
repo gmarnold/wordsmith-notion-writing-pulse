@@ -10,7 +10,7 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@notionhq/client": "^2.2.15",
+    "@notionhq/client": "^5.27.0",
     "@wordsmith/shared": "0.1.0"
   }
 }

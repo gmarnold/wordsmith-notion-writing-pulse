@@ -14,7 +14,7 @@
   },
   "dependencies": {
     "@fastify/cors": "^10.0.1",
-    "@notionhq/client": "^2.2.15",
+    "@notionhq/client": "^5.27.0",
     "@wordsmith/notion": "0.1.0",
     "@wordsmith/shared": "0.1.0",
     "dotenv": "^16.4.5",
