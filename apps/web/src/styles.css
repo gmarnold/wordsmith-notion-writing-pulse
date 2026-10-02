@@ -314,6 +314,27 @@ progress {
   margin-top: 18px;
   border-radius: 12px;
 }
+.loginPanel {
+  max-width: 500px;
+  margin: 40px auto;
+}
+.loginPanel form {
+  display: grid;
+  gap: 18px;
+}
+.sessionBar {
+  display: flex;
+  justify-content: flex-end;
+  padding: 12px 24px 0;
+}
+.savedManuscript {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 18px;
+}
 @media (max-width: 380px) {
   .embedMetrics {
     grid-template-columns: 1fr;

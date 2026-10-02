@@ -1,6 +1,7 @@
 import { expect, test } from "@playwright/test";
 
 test("opens demo manuscript and views word counts", async ({ page }) => {
+  page.on("pageerror", (error) => console.error("Browser error:", error.message));
   await page.goto("/");
   await expect(page.getByText("Writing progress for Notion")).toBeVisible();
   await page.getByRole("button", { name: /inspect manuscript/i }).click();
@@ -23,11 +24,24 @@ test("configures goals, simulates automatic sync and previews a narrow revocable
   ).json();
   await page.request.post(`/api/manuscripts/${m.id}/sync`);
   await page.goto("/");
+  await page
+    .locator(".savedManuscript")
+    .filter({ hasText: "Embed demo" })
+    .getByRole("button", { name: "Settings", exact: true })
+    .click();
   await page.getByLabel("Writer timezone").fill("America/Chicago");
   await page.getByLabel("daily goal", { exact: true }).fill("500");
   await page.getByRole("combobox", { name: "Word Count (Number)", exact: true }).selectOption("wc");
   await page.getByRole("button", { name: "Save settings", exact: true }).click();
   await expect(page.getByText(/Settings saved/)).toBeVisible();
+  await page.reload();
+  await expect(page.getByRole("button", { name: "Inspect manuscript" })).toHaveCount(0);
+  await page
+    .locator(".savedManuscript")
+    .filter({ hasText: "Embed demo" })
+    .getByRole("button", { name: "Settings", exact: true })
+    .click();
+  await expect(page.getByLabel("daily goal", { exact: true })).toHaveValue("500");
   const edited = page.waitForResponse(
     (response) => response.url().includes("/api/demo/") && response.request().method() === "POST",
   );

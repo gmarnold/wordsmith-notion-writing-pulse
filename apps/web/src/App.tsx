@@ -2,7 +2,7 @@ import { BookOpen, Cloud, Database, RefreshCw, Sparkles } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Configuration } from "./Configuration";
 import { api } from "./api";
-import type { Stats } from "@wordsmith/shared";
+import type { Stats, Manuscript } from "@wordsmith/shared";
 import { createManuscript, getStatus, inspectManuscript, syncManuscript } from "./api";
 import "./styles.css";
 
@@ -20,9 +20,13 @@ type Inspection = {
   }>;
 };
 
-export function App() {
+export function App({ hosted = false }: { hosted?: boolean }) {
+  const [manuscripts, setManuscripts] = useState<Manuscript[]>([]);
+  const [showSetup, setShowSetup] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  const [webhookConfigured, setWebhookConfigured] = useState(false);
   const [status, setStatus] = useState<Record<string, unknown> | null>(null);
-  const [notionUrl, setNotionUrl] = useState("demo");
+  const [notionUrl, setNotionUrl] = useState(hosted ? "" : "demo");
   const [inspection, setInspection] = useState<Inspection | null>(null);
   const [stats, setStats] = useState<Stats | null>(null);
   const [savedId, setSavedId] = useState<string | null>(null);
@@ -30,8 +34,13 @@ export function App() {
   const [message, setMessage] = useState<string | null>(null);
 
   useEffect(() => {
-    api<Array<{ id: string }>>("/api/manuscripts")
+    void api<{ configured: boolean }>("/api/webhook/status")
+      .then((s) => setWebhookConfigured(s.configured))
+      .catch(() => {});
+    api<Manuscript[]>("/api/manuscripts")
       .then(async (manuscripts) => {
+        setManuscripts(manuscripts);
+        setShowSetup(manuscripts.length === 0);
         const id = manuscripts[0]?.id;
         if (id) {
           setSavedId(id);
@@ -99,6 +108,10 @@ export function App() {
         })),
       });
       setSavedId(manuscript.id);
+      setManuscripts((current) => [...current, manuscript]);
+      setShowSetup(false);
+      setShowSettings(true);
+      setInspection(null);
       setStats(await syncManuscript(manuscript.id));
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Could not sync that manuscript.");
@@ -120,84 +133,165 @@ export function App() {
         </div>
       </section>
 
-      <section className="workspace">
-        <div className="setupPanel">
-          <div className="panelTitle">
-            <BookOpen size={20} /> Connect a manuscript
-          </div>
-          <label htmlFor="notionUrl">Notion page or database URL</label>
-          <div className="inspectRow">
-            <input
-              id="notionUrl"
-              value={notionUrl}
-              onChange={(event) => setNotionUrl(event.target.value)}
-              placeholder="Paste a Notion URL or ID"
-            />
-            <button onClick={inspect} disabled={busy}>
-              <Sparkles size={18} /> Inspect manuscript
-            </button>
-          </div>
-          {message ? <p className="errorText">{message}</p> : null}
-          <p className="hint">
-            Use <strong>demo</strong> to open the fixture manuscript without Notion credentials.
-          </p>
-        </div>
+      {manuscripts.length ? (
+        <section className="dashboard" aria-label="Saved manuscripts">
+          <h2>Your manuscripts</h2>
+          {manuscripts.map((m) => (
+            <div className="savedManuscript" key={m.id}>
+              <div>
+                <strong>{m.name}</strong>
+                <p className="hint">
+                  {connectionLabel} ·{" "}
+                  {webhookConfigured ? "Webhook configured" : "Webhook setup needed"} ·{" "}
+                  {m.sources.filter((s) => s.included).length} tracked scenes
+                  {m.id === savedId && stats?.lastSyncedAt
+                    ? ` · Last sync: ${new Date(stats.lastSyncedAt).toLocaleString(undefined, { timeZone: stats.timezone })}`
+                    : ""}
+                </p>
+              </div>
+              <div className="buttonRow">
+                <button
+                  onClick={async () => {
+                    setSavedId(m.id);
+                    setShowSettings(false);
+                    setStats(await api<Stats>(`/api/manuscripts/${m.id}/stats`));
+                  }}
+                >
+                  Open dashboard
+                </button>
+                <button
+                  onClick={async () => {
+                    setSavedId(m.id);
+                    setShowSettings(true);
+                    setStats(await api<Stats>(`/api/manuscripts/${m.id}/stats`));
+                  }}
+                >
+                  Settings
+                </button>
+                <button
+                  disabled={busy}
+                  onClick={async () => {
+                    setBusy(true);
+                    try {
+                      setSavedId(m.id);
+                      setStats(await syncManuscript(m.id));
+                    } catch (e) {
+                      setMessage(e instanceof Error ? e.message : "Sync failed.");
+                    } finally {
+                      setBusy(false);
+                    }
+                  }}
+                >
+                  Sync now
+                </button>
+              </div>
+            </div>
+          ))}
+          <button
+            onClick={() => {
+              setShowSetup(true);
+              setInspection(null);
+            }}
+          >
+            Add another manuscript
+          </button>
+          {message ? <p role="status">{message}</p> : null}
+        </section>
+      ) : null}
 
-        {inspection ? (
-          <div className="resultsPanel">
+      {showSetup ? (
+        <section className="workspace">
+          <div className="setupPanel">
             <div className="panelTitle">
-              <Database size={20} /> {inspection.name}
+              <BookOpen size={20} /> Connect a manuscript
             </div>
-            <label>
-              Manuscript name
+            <label htmlFor="notionUrl">Notion page or database URL</label>
+            <div className="inspectRow">
               <input
-                value={inspection.name}
-                onChange={(event) => setInspection({ ...inspection, name: event.target.value })}
+                id="notionUrl"
+                value={notionUrl}
+                onChange={(event) => setNotionUrl(event.target.value)}
+                placeholder="Paste a Notion URL or ID"
               />
-            </label>
-            <div className="metricStrip">
-              <div>
-                <strong>{inspection.totalWords.toLocaleString()}</strong>
-                <span>current words</span>
-              </div>
-              <div>
-                <strong>{inspection.sources.filter((s) => s.included).length}</strong>
-                <span>included pages</span>
-              </div>
+              <button onClick={inspect} disabled={busy}>
+                <Sparkles size={18} /> Inspect manuscript
+              </button>
             </div>
-            <div className="chapterList">
-              {inspection.sources.map((source) => (
-                <div className="chapterRow" key={source.notionPageId}>
-                  <label>
-                    <input
-                      type="checkbox"
-                      checked={source.included}
-                      onChange={(event) =>
-                        setInspection({
-                          ...inspection,
-                          sources: inspection.sources.map((s) =>
-                            s.notionPageId === source.notionPageId
-                              ? { ...s, included: event.target.checked }
-                              : s,
-                          ),
-                        })
-                      }
-                    />{" "}
-                    {source.title}
-                  </label>
-                  <strong>{source.wordCount.toLocaleString()}</strong>
-                </div>
-              ))}
-            </div>
-            <button className="primaryWide" onClick={saveAndSync} disabled={busy}>
-              <RefreshCw size={18} /> Sync now
-            </button>
+            {message ? <p className="errorText">{message}</p> : null}
+            {status?.mode === "demo" ? (
+              <p className="hint">
+                Use <strong>demo</strong> to open the fixture manuscript without Notion credentials.
+              </p>
+            ) : (
+              <p className="hint">
+                Configure a manuscript once. After setup, write in Notion and Wordsmith updates
+                automatically.
+              </p>
+            )}
           </div>
-        ) : null}
-      </section>
 
-      {savedId ? (
-        <Configuration id={savedId} demo={status?.mode === "demo"} onSync={setStats} />
+          {inspection ? (
+            <div className="resultsPanel">
+              <div className="panelTitle">
+                <Database size={20} /> {inspection.name}
+              </div>
+              <label>
+                Manuscript name
+                <input
+                  value={inspection.name}
+                  onChange={(event) => setInspection({ ...inspection, name: event.target.value })}
+                />
+              </label>
+              <div className="metricStrip">
+                <div>
+                  <strong>{inspection.totalWords.toLocaleString()}</strong>
+                  <span>current words</span>
+                </div>
+                <div>
+                  <strong>{inspection.sources.filter((s) => s.included).length}</strong>
+                  <span>included pages</span>
+                </div>
+              </div>
+              <div className="chapterList">
+                {inspection.sources.map((source) => (
+                  <div className="chapterRow" key={source.notionPageId}>
+                    <label>
+                      <input
+                        type="checkbox"
+                        checked={source.included}
+                        onChange={(event) =>
+                          setInspection({
+                            ...inspection,
+                            sources: inspection.sources.map((s) =>
+                              s.notionPageId === source.notionPageId
+                                ? { ...s, included: event.target.checked }
+                                : s,
+                            ),
+                          })
+                        }
+                      />{" "}
+                      {source.title}
+                    </label>
+                    <strong>{source.wordCount.toLocaleString()}</strong>
+                  </div>
+                ))}
+              </div>
+              <button className="primaryWide" onClick={saveAndSync} disabled={busy}>
+                <RefreshCw size={18} /> Sync now
+              </button>
+            </div>
+          ) : null}
+        </section>
+      ) : null}
+
+      {savedId && showSettings ? (
+        <Configuration
+          key={savedId}
+          id={savedId}
+          demo={status?.mode === "demo"}
+          hosted={hosted}
+          onSync={setStats}
+        />
       ) : null}
       {stats ? <Dashboard stats={stats} /> : null}
     </main>

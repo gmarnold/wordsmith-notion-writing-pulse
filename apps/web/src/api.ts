@@ -15,20 +15,12 @@ export type InspectionResponse = {
   }>;
 };
 
-const jsonHeaders = { "Content-Type": "application/json" };
-
 export async function getStatus(): Promise<StatusResponse> {
-  return read<StatusResponse>(fetch("/api/notion/status"));
+  return api<StatusResponse>("/api/notion/status");
 }
 
 export async function inspectManuscript(notionUrlOrId: string): Promise<InspectionResponse> {
-  return read<InspectionResponse>(
-    fetch("/api/manuscripts/inspect", {
-      method: "POST",
-      headers: jsonHeaders,
-      body: JSON.stringify({ notionUrlOrId }),
-    }),
-  );
+  return api<InspectionResponse>("/api/manuscripts/inspect", "POST", { notionUrlOrId });
 }
 
 export async function createManuscript(input: {
@@ -42,24 +34,22 @@ export async function createManuscript(input: {
     sortOrder: number | null;
   }>;
 }): Promise<Manuscript> {
-  return read<Manuscript>(
-    fetch("/api/manuscripts", {
-      method: "POST",
-      headers: jsonHeaders,
-      body: JSON.stringify(input),
-    }),
-  );
+  return api<Manuscript>("/api/manuscripts", "POST", input);
 }
 
 export async function syncManuscript(id: string): Promise<Stats> {
-  return read<Stats>(fetch(`/api/manuscripts/${id}/sync`, { method: "POST" }));
+  return api<Stats>(`/api/manuscripts/${id}/sync`, "POST");
 }
 
 export async function read<T>(promise: Promise<Response>): Promise<T> {
   const response = await promise;
   const body = await response.json();
   if (!response.ok) {
-    throw new Error(body.error?.message ?? "Wordsmith request failed.");
+    if (response.status === 401) window.dispatchEvent(new Event("wordsmith-sign-in-required"));
+    throw new Error(
+      body.error?.message ??
+        (typeof body.error === "string" ? body.error : "Wordsmith request failed."),
+    );
   }
   return body as T;
 }
@@ -68,7 +58,11 @@ export async function api<T>(path: string, method = "GET", body?: unknown): Prom
   return read<T>(
     fetch(path, {
       method,
-      headers: body === undefined ? undefined : jsonHeaders,
+      credentials: "same-origin",
+      headers: {
+        ...(body === undefined ? {} : { "Content-Type": "application/json" }),
+        ...(["GET", "HEAD"].includes(method) ? {} : { "X-Wordsmith-Request": "1" }),
+      },
       body: body === undefined ? undefined : JSON.stringify(body),
     }),
   );

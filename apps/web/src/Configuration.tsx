@@ -1,14 +1,17 @@
 import { useEffect, useState } from "react";
 import type { Settings, Stats, SyncRun } from "@wordsmith/shared";
 import { api, syncManuscript } from "./api";
+import { WebhookSetup } from "./WebhookSetup";
 type Property = { id: string; name: string; type: string };
 export function Configuration({
   id,
   demo,
+  hosted = false,
   onSync,
 }: {
   id: string;
   demo: boolean;
+  hosted?: boolean;
   onSync: (stats: Stats) => void;
 }) {
   const [settings, setSettings] = useState<Settings | null>(null);
@@ -50,6 +53,7 @@ export function Configuration({
   return (
     <section className="dashboard" aria-label="Manuscript configuration">
       <h2>Manuscript settings</h2>
+      {hosted && syncState && !syncState.configured ? <WebhookSetup /> : null}
       <p className="hint">
         {syncState?.configured ? "Webhook verification configured" : "Webhook setup needed"} ·{" "}
         {syncState?.pendingEvents ?? 0} queued events ·{" "}
@@ -176,7 +180,9 @@ export function Configuration({
       {embed ? (
         <>
           <p className="hint">
-            Private bearer link. Replace localhost:4142 with your public HTTPS host for Notion.
+            {hosted
+              ? "Private read-only link. Paste this exact HTTPS URL into a Notion embed."
+              : "Private bearer link. Replace localhost:4142 with your public HTTPS host for Notion."}
           </p>
           <a href={embed} target="_blank" rel="noreferrer">
             Open embed preview
