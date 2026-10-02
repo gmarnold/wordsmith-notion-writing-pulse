@@ -1,5 +1,7 @@
 # Architecture
 
+For the hosted listener, authenticated administration, managed persistence and release flow, see [PRODUCTION_DEPLOYMENT.md](PRODUCTION_DEPLOYMENT.md). The local listeners described below remain available for development; production serves web/API/widget on one HTTPS origin and uses no tunnel.
+
 I extend the working first prototype rather than replacing it. The TypeScript workspace remains React/Vite, Fastify, the existing Notion adapter, Drizzle and PostgreSQL.
 
 ```text

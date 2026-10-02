@@ -1,5 +1,7 @@
 # Notion embed setup
 
+For the hosted version, follow [production checkpoint E](PRODUCTION_DEPLOYMENT.md#checkpoint-e-production-embed). It generates the full permanent HTTPS URL. The localhost/tunnel instructions below remain for development only and require the development computer to stay running.
+
 1. Build web assets with `npm run build` and run `npm run dev:api`. Run `npm run dev:web` for configuration.
 2. In the Wordsmith web app, track/sync a manuscript, configure timezone and goals, and click Create embed link. The panel shows a compact iframe preview and a read-only URL of the form `http://localhost:4142/embed/OPAQUE_TOKEN`.
 3. To test in Notion, expose the **public-only listener on 4142** via the HTTPS tunnel described in [WEBHOOK_SETUP.md](WEBHOOK_SETUP.md), or deploy it behind a stable HTTPS URL. Replace `http://localhost:4142` in the generated URL with that public HTTPS origin. Normal remote Notion embeds cannot reach your localhost.

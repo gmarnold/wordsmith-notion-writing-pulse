@@ -1,4 +1,6 @@
-# Webhook setup
+# Local webhook setup
+
+This guide is for **local development**. It requires the computer, local API and temporary tunnel to stay running. For the hosted, computer-off workflow use [PRODUCTION_DEPLOYMENT.md](PRODUCTION_DEPLOYMENT.md). Cloudflare Tunnel is not required or used in production.
 
 Wordsmith automatically updates shortly after you edit your writing. Notion batches `page.content_updated` events; allow a minute or two for delivery, then approximately three seconds for Wordsmith's debounce and up to 15 seconds for dashboard refresh. This is not a keystroke feed.
 

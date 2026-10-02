@@ -4,7 +4,7 @@ I built Wordsmith because I wanted to draft and organize my novels in Notion wit
 
 My first prototype now works against real Notion writing databases: it discovers scenes, counts their prose and displays manuscript totals. In iteration 2, I extend that architecture with automatic scene recounts, mapped Notion properties, writing goals and a compact read-only dashboard designed for Notion embeds.
 
-Notion batches page-content webhook events, so Wordsmith updates shortly after editing rather than on every individual keystroke. The automatic flow is implemented and tested with fixtures; real delivery still needs my public HTTPS webhook subscription configured in Notion.
+Notion batches page-content webhook events, so Wordsmith updates shortly after editing rather than on every individual keystroke. My local webhook and embed now work. Iteration 3 prepares the hosted service so I can close my computer and keep writing in Notion; the production account setup and computer-off release test remain pending.
 
 ## Current features
 
@@ -28,9 +28,15 @@ Notion -> verified webhook -> Wordsmith API -> word-count engine
 
 This remains a small TypeScript monorepo: `apps/web` (React/Vite), `apps/api` (Fastify/Drizzle/PostgreSQL), `packages/notion` (adapter and counting engine), `packages/shared` (contracts), and `docs` (decisions/setup).
 
+## Hosted architecture
+
+I use one paid Render Node service for the admin app, API, signed webhook and read-only widget, with managed PostgreSQL for saved manuscripts, mappings, goals and history. Production uses stable HTTPS and requires no local Node process, Docker or Cloudflare tunnel. The admin requires a password-hash login and secure database-backed session; embeds keep their separate revocable read-only links. I configure my existing internal Notion connection through hosting secrets, not frontend code.
+
+The service is prepared in `render.yaml`; creating the resources and accepting their charges happens only in my own hosting account. I have not deployed production yet. I follow the [production deployment checkpoints](docs/PRODUCTION_DEPLOYMENT.md) and treat the [computer-off validation](docs/ALWAYS_ON_VALIDATION.md) as the release gate. GitHub CI must pass before normal auto-deployment.
+
 ## Local demo
 
-Install Node.js 22+ and run from the repository root:
+Install Node.js 22.12+ (or supported Node 24) and run from the repository root:
 
 ```powershell
 npm install
@@ -48,7 +54,7 @@ I keep secrets directly in `apps/api/.env`. For persistent live tracking I set `
 
 - [Native PostgreSQL on Windows (Docker optional)](docs/POSTGRESQL_SETUP.md)
 - [Connect and share Notion sources](docs/NOTION_SETUP.md)
-- [Exact webhook setup and external checkpoint](docs/WEBHOOK_SETUP.md)
+- [Local webhook development](docs/LOCAL_WEBHOOK_DEVELOPMENT.md)
 - [Embed in Notion](docs/NOTION_EMBED_SETUP.md)
 - [Native architecture and baseline decisions](docs/NOTION_NATIVE_ARCHITECTURE.md)
 - [Architecture](docs/ARCHITECTURE.md) and [word-count rules](docs/WORD_COUNT_RULES.md)
@@ -71,4 +77,4 @@ Tests cover the existing count/discovery behavior, raw signatures, duplicates/de
 
 I process manuscript prose in memory and persist derived analytics, Notion IDs, page titles, counts, timestamps and configuration. Notion secrets stay on the server. Embed tokens are bearer links; only hashes are stored, and links can be rotated/revoked.
 
-This is still a single-writer, single-API-process prototype. It needs a running server and stable HTTPS hosting for daily use. New scenes are not automatically enrolled, source membership changes and historical goal versions are deferred, and newly created pages conservatively establish baselines. Public OAuth, multi-user authentication, billing, AI writing, grammar/style tools and frequency analysis remain later work. See the [iteration 2 report](docs/ITERATION_2_REPORT.md) for validation results, existing dependency audit findings and the remaining real Notion setup checkpoint.
+This remains a personal, single-integration service with one hosted worker instance. I retain local fixture/demo mode for development and CI; production rejects it. New scenes are not automatically enrolled, source membership changes and historical goal versions are deferred, and newly created pages conservatively establish baselines. Public OAuth, multiple-user accounts, product billing, AI writing, grammar/style tools and frequency analysis remain later work. The [iteration 3 report](docs/ITERATION_3_REPORT.md) tracks the implementation and outstanding hosting release gate.
