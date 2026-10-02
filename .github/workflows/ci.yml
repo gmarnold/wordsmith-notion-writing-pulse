@@ -4,9 +4,26 @@ on:
   push:
   pull_request:
 
+permissions:
+  contents: read
+
 jobs:
   checks:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:18-alpine
+        env:
+          POSTGRES_USER: wordsmith_test
+          POSTGRES_PASSWORD: fixture_test_password
+          POSTGRES_DB: wordsmith_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U wordsmith_test -d wordsmith_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -18,6 +35,8 @@ jobs:
       - run: npm run lint
       - run: npm run typecheck
       - run: npm test
+        env:
+          WORDSMITH_TEST_DATABASE_URL: postgresql://wordsmith_test:fixture_test_password@localhost:5432/wordsmith_test
       - run: npm run build
       - run: npm run e2e
         env:
