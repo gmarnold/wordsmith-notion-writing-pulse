@@ -4,7 +4,7 @@ import { config } from "../config.js";
 import * as schema from "./schema.js";
 
 export function createDb() {
-  if (!config.DATABASE_URL) {
+  if (config.WORDSMITH_DEMO_MODE || !config.DATABASE_URL) {
     return null;
   }
 
