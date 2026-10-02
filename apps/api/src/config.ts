@@ -6,12 +6,15 @@ import { z } from "zod";
 const apiRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const shellEnv = { ...process.env };
 dotenv.config();
-const appEnv = process.env.VITEST ? {} : (dotenv.config({ path: resolve(apiRoot, ".env") }).parsed ?? {});
+const appEnv = process.env.VITEST
+  ? {}
+  : (dotenv.config({ path: resolve(apiRoot, ".env") }).parsed ?? {});
 const mergedEnv = {
   ...process.env,
   ...appEnv,
+  ...shellEnv,
   API_PORT: shellEnv.API_PORT ?? appEnv.API_PORT ?? process.env.API_PORT,
-  WEB_ORIGIN: shellEnv.WEB_ORIGIN ?? appEnv.WEB_ORIGIN ?? process.env.WEB_ORIGIN
+  WEB_ORIGIN: shellEnv.WEB_ORIGIN ?? appEnv.WEB_ORIGIN ?? process.env.WEB_ORIGIN,
 };
 
 const booleanFromEnv = z.preprocess((value) => {
@@ -23,10 +26,14 @@ const booleanFromEnv = z.preprocess((value) => {
 
 const envSchema = z.object({
   DATABASE_URL: z.string().url().optional(),
+  NOTION_WEBHOOK_VERIFICATION_TOKEN: z.string().optional(),
+  NOTION_WEBHOOK_SETUP: booleanFromEnv.default(false),
   NOTION_TOKEN: z.string().optional(),
   WORDSMITH_DEMO_MODE: booleanFromEnv.default(false),
+  PUBLIC_PORT: z.coerce.number().int().positive().default(4142),
+  PUBLIC_ORIGIN: z.string().url().optional(),
   API_PORT: z.coerce.number().int().positive().default(4141),
-  WEB_ORIGIN: z.string().default("http://localhost:5173")
+  WEB_ORIGIN: z.string().default("http://localhost:5173"),
 });
 
 export const config = envSchema.parse(mergedEnv);

@@ -13,3 +13,5 @@ apps/web/.env
 .idea/
 .vscode/
 *.tsbuildinfo
+
+apps/api/.webhook-verification-token
