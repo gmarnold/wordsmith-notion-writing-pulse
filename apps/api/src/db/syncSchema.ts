@@ -16,3 +16,16 @@ export const webhookEvents = pgTable("webhook_events", {
   status: text("status").notNull().default("pending"),
   attempts: integer("attempts").notNull().default(0),
 });
+
+export const adminSessions = pgTable("admin_sessions", {
+  tokenHash: text("token_hash").primaryKey(),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+});
+export const integrationState = pgTable("integration_state", {
+  id: text("id").primaryKey(),
+  kind: text("kind").notNull().default("internal_environment"),
+  workspaceName: text("workspace_name"),
+  setupNonceHash: text("setup_nonce_hash"),
+  setupTokenCipher: text("setup_token_cipher"),
+  setupExpiresAt: timestamp("setup_expires_at", { withTimezone: true }),
+});

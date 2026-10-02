@@ -49,3 +49,5 @@ export const wordCountSnapshots = pgTable("word_count_snapshots", {
 });
 
 export { manuscriptSettings, webhookEvents } from "./syncSchema.js";
+
+export { adminSessions, integrationState } from "./syncSchema.js";
