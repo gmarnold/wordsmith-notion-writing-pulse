@@ -1,3 +1,4 @@
+import { localConfigurationOrigins } from "./localAccess.js";
 import cors from "@fastify/cors";
 import Fastify from "fastify";
 import { registerPublicRoutes } from "./webhooks.js";
@@ -76,7 +77,7 @@ export function buildServer() {
     return service.demoEdit(m.sources[0]!.notionPageId);
   });
 
-  const allowedOrigins = [config.WEB_ORIGIN];
+  const allowedOrigins = localConfigurationOrigins(config.WEB_ORIGIN);
   server.addHook("onRequest", async (request, reply) => {
     if (
       !/^(localhost|127\.0\.0\.1)(:\d+)?$/.test(request.headers.host ?? "") ||
