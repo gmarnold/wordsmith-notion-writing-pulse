@@ -11,16 +11,32 @@ import {
 import { createManuscriptRequestSchema, inspectRequestSchema } from "@wordsmith/shared";
 import { createSyncEngine } from "./syncEngine.js";
 import { SyncStore } from "./syncStore.js";
-import { config, notionTokenStatus } from "./config.js";
+import { config as defaultConfig } from "./config.js";
 import { ApiProblem } from "./problems.js";
 import type { Repository } from "./repository.js";
+import type { AppConfig } from "./environment.js";
+import type { WritingClient } from "./properties.js";
+import type { OperationalLogger } from "./observability.js";
 
-export function createWordsmithService(repository: Repository, store = new SyncStore()) {
-  const notionClient = config.WORDSMITH_DEMO_MODE
-    ? new FixtureNotionClient()
-    : new OfficialNotionBlockClient(config.NOTION_TOKEN ?? "");
+export function createWordsmithService(
+  repository: Repository,
+  store = new SyncStore(),
+  options: {
+    config?: AppConfig;
+    client?: WritingClient;
+    log?: OperationalLogger;
+    lock?: <T>(fn: () => Promise<T>) => Promise<T>;
+  } = {},
+) {
+  const config = options.config ?? defaultConfig;
+  const notionTokenStatus = () => (config.NOTION_TOKEN?.trim() ? "configured" : "missing");
+  const notionClient =
+    options.client ??
+    (config.WORDSMITH_DEMO_MODE
+      ? new FixtureNotionClient()
+      : new OfficialNotionBlockClient(config.NOTION_TOKEN ?? ""));
 
-  const engine = createSyncEngine(repository, notionClient, store);
+  const engine = createSyncEngine(repository, notionClient, store, options);
   return {
     engine,
     async demoEdit(pageId: string) {
