@@ -6,15 +6,18 @@ import { buildStats } from "./analytics.js";
 import { SyncStore } from "./syncStore.js";
 import { writeCount, type WritingClient } from "./properties.js";
 import { ApiProblem } from "./problems.js";
+import { errorCategory, type OperationalLogger } from "./observability.js";
 const hash = (token: string) => createHash("sha256").update(token).digest("hex");
 export function createSyncEngine(
   repository: Repository,
   client: WritingClient,
   store = new SyncStore(),
+  options: { log?: OperationalLogger; lock?: <T>(fn: () => Promise<T>) => Promise<T> } = {},
 ) {
   let tail: Promise<unknown> = Promise.resolve();
   const serial = <T>(fn: () => Promise<T>): Promise<T> => {
-    const next = tail.then(fn, fn);
+    const run = () => (options.lock ? options.lock(fn) : fn());
+    const next = tail.then(run, run);
     tail = next.catch(() => {});
     return next;
   };
@@ -25,13 +28,16 @@ export function createSyncEngine(
   const recount = async (id: string, pageId?: string) => {
     const m = await repository.getManuscript(id);
     if (!m) return null;
+    const started = Date.now();
     const run = await repository.createSyncRun(id);
+    options.log?.({ manuscriptId: id, pageId, syncRunId: run.id }, "Recount started");
     let errors = 0;
     const settings = await store.getSettings(id);
     const sources = m.sources.filter(
       (s) => s.included && (!pageId || normalizeNotionId(s.notionPageId) === pageId),
     );
     for (const source of sources) {
+      let stage = "SYNC";
       try {
         const count = await countPageWords(client, source.notionPageId);
         const snapshots = (await repository.getSnapshots(id))
@@ -48,14 +54,29 @@ export function createSyncEngine(
         const latest = (await repository.getSnapshots(id))
           .filter((s) => s.sourceId === source.id)
           .sort((a, b) => +b.capturedAt - +a.capturedAt)[0]!;
-        await writeCount(
+        stage = "PROPERTY_WRITE";
+        const written = await writeCount(
           client,
           source.notionPageId,
           count,
           settings,
           latest.capturedAt.toISOString(),
         );
-      } catch {
+        options.log?.(
+          {
+            pageId: source.notionPageId,
+            syncRunId: run.id,
+            oldWordCount: previous?.wordCount ?? null,
+            newWordCount: count,
+            propertyWrite: written ? "performed" : "skipped",
+          },
+          "Scene recounted",
+        );
+      } catch (error) {
+        options.log?.(
+          { category: errorCategory(error, stage), pageId: source.notionPageId, syncRunId: run.id },
+          "Scene recount failed; details omitted",
+        );
         errors++;
       }
     }
@@ -65,6 +86,14 @@ export function createSyncEngine(
       errors
         ? "Could not recount or write mapped properties; check access and property mapping."
         : undefined,
+    );
+    options.log?.(
+      {
+        syncRunId: run.id,
+        status: errors ? "failed" : "success",
+        durationMs: Date.now() - started,
+      },
+      "Recount finished",
     );
     if (errors && pageId) throw new Error("Automatic sync failed");
     return stats(id);
@@ -136,12 +165,25 @@ export function createSyncEngine(
               true,
             );
             processed.push({ pageId, status: "success" });
+            options.log?.(
+              { pageId, eventIds: group.map((e) => e.id), status: "success" },
+              "Webhook group completed",
+            );
           } catch {
             await store.finish(
               group.map((e) => e.id),
               false,
             );
             processed.push({ pageId, status: "retry_pending" });
+            options.log?.(
+              {
+                category: "SYNC",
+                pageId,
+                eventIds: group.map((e) => e.id),
+                status: "retry_pending",
+              },
+              "Webhook group will retry",
+            );
           }
         }
         await store.prune();
