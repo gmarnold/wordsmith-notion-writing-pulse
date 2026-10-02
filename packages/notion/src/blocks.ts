@@ -39,13 +39,13 @@ export class OfficialNotionBlockClient implements NotionBlockClient {
   private readonly dataSourceIdsByDatabaseId = new Map<string, string>();
 
   constructor(token: string) {
-    this.client = new Client({ auth: token, notionVersion: "2026-03-11" });
+    this.client = new Client({ auth: token, notionVersion: "2026-03-11", logger: () => {} });
   }
 
   async listBlockChildren(blockId: string, startCursor?: string): Promise<BlockChildrenPage> {
     const response = await this.client.blocks.children.list({
       block_id: blockId,
-      start_cursor: startCursor
+      start_cursor: startCursor,
     });
     return response as BlockChildrenPage;
   }
@@ -59,13 +59,27 @@ export class OfficialNotionBlockClient implements NotionBlockClient {
     const response = await this.client.dataSources.query({
       data_source_id: dataSourceId,
       start_cursor: startCursor,
-      result_type: "page"
+      result_type: "page",
     });
     return {
       results: response.results.filter(isNotionPage),
       has_more: response.has_more,
-      next_cursor: response.next_cursor
+      next_cursor: response.next_cursor,
     };
+  }
+
+  async listProperties(rootId: string) {
+    const id = await this.resolveDataSourceId(rootId);
+    const source = await this.client.dataSources.retrieve({ data_source_id: id });
+    if (!("properties" in source)) throw new Error("Data source unavailable");
+    return Object.entries(source.properties).map(([name, p]) => ({ id: p.id, name, type: p.type }));
+  }
+
+  async updateProperties(
+    pageId: string,
+    properties: Parameters<Client["pages"]["update"]>[0]["properties"],
+  ) {
+    await this.client.pages.update({ page_id: pageId, properties });
   }
 
   private async resolveDataSourceId(databaseOrDataSourceId: string): Promise<string> {
@@ -73,7 +87,9 @@ export class OfficialNotionBlockClient implements NotionBlockClient {
     if (cached) return cached;
 
     try {
-      const database = await this.client.databases.retrieve({ database_id: databaseOrDataSourceId });
+      const database = await this.client.databases.retrieve({
+        database_id: databaseOrDataSourceId,
+      });
       const dataSources = (database as { data_sources?: Array<{ id: string }> }).data_sources ?? [];
       const firstDataSourceId = dataSources[0]?.id;
       if (firstDataSourceId) {
@@ -132,7 +148,7 @@ export async function inspectManuscriptSource(
       notionPageId: page.id,
       title: getPageTitle(page) || `Page ${index + 1}`,
       included: true,
-      sortOrder: index
+      sortOrder: index,
     }));
   }
 
@@ -142,9 +158,9 @@ export async function inspectManuscriptSource(
     .map((block, index) => ({
       notionPageId: (block as { id?: string }).id ?? "",
       title:
-        ((block.child_page as { title?: string } | undefined)?.title?.trim() || `Page ${index + 1}`),
+        (block.child_page as { title?: string } | undefined)?.title?.trim() || `Page ${index + 1}`,
       included: true,
-      sortOrder: index
+      sortOrder: index,
     }))
     .filter((source) => source.notionPageId.length > 0);
 
@@ -158,8 +174,8 @@ export async function inspectManuscriptSource(
       notionPageId: rootId,
       title: getPageTitle(rootPage) || "Untitled manuscript page",
       included: true,
-      sortOrder: 0
-    }
+      sortOrder: 0,
+    },
   ];
 }
 
@@ -187,7 +203,12 @@ export function getPageTitle(page: NotionPage): string {
   for (const property of Object.values(properties)) {
     const maybeTitle = property as { type?: string; title?: Array<{ plain_text?: string }> };
     if (maybeTitle.type === "title") {
-      return maybeTitle.title?.map((span) => span.plain_text ?? "").join("").trim() ?? "";
+      return (
+        maybeTitle.title
+          ?.map((span) => span.plain_text ?? "")
+          .join("")
+          .trim() ?? ""
+      );
     }
   }
   return "";

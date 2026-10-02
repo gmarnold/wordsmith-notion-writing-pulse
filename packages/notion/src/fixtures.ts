@@ -1,4 +1,9 @@
-import type { NotionBlockClient, BlockChildrenPage, DatabaseQueryPage, NotionPage } from "./blocks.js";
+import type {
+  NotionBlockClient,
+  BlockChildrenPage,
+  DatabaseQueryPage,
+  NotionPage,
+} from "./blocks.js";
 import type { CountableNotionBlock } from "./wordCount.js";
 
 const demoPageId = "11111111-1111-4111-8111-111111111111";
@@ -17,35 +22,54 @@ export class FixtureNotionClient implements NotionBlockClient {
         {
           id: chapterOneId,
           type: "child_page",
-          child_page: { title: "Chapter 1: The Lantern Room" }
+          child_page: { title: "Chapter 1: The Lantern Room" },
         },
         {
           id: chapterTwoId,
           type: "child_page",
-          child_page: { title: "Chapter 2: Ink and Weather" }
+          child_page: { title: "Chapter 2: Ink and Weather" },
         },
         {
           id: chapterThreeId,
           type: "child_page",
-          child_page: { title: "Chapter 3: A Door in the Margin" }
-        }
+          child_page: { title: "Chapter 3: A Door in the Margin" },
+        },
       ],
       [chapterOneId]: [
         paragraph("Mara found the lantern room after midnight, when the house was quiet."),
-        paragraph("She didn't know why the glass still glowed, but she wrote it down anyway.")
+        paragraph("She didn't know why the glass still glowed, but she wrote it down anyway."),
       ],
       [chapterTwoId]: [
         heading("Rain Notes"),
         paragraph("The storm arrived in careful sentences, each one tapping the roof."),
-        paragraph("Mother-in-law jokes would not help; neither would tea.")
+        paragraph("Mother-in-law jokes would not help; neither would tea."),
       ],
       [chapterThreeId]: [
         paragraph("Hello-world was carved above the door."),
-        paragraph("On the desk, three maps waited beside a blank page.")
-      ]
+        paragraph("On the desk, three maps waited beside a blank page."),
+      ],
     };
   }
 
+  private properties: Record<string, Record<string, unknown>> = {};
+  setWordCount(pageId: string, count: number) {
+    this.pages[pageId] = [paragraph(Array(count).fill("word").join(" "))];
+  }
+  async listProperties() {
+    return [
+      { id: "wc", name: "Word Count", type: "number" },
+      { id: "lc", name: "Last Counted", type: "date" },
+    ];
+  }
+  async updateProperties(pageId: string, properties: Record<string, unknown> | undefined) {
+    this.properties[pageId] = { ...this.properties[pageId] };
+    for (const [id, value] of Object.entries(properties ?? {}))
+      this.properties[pageId]![id] = {
+        id,
+        type: "number" in (value as object) ? "number" : "date",
+        ...(value as object),
+      };
+  }
   async listBlockChildren(blockId: string, startCursor?: string): Promise<BlockChildrenPage> {
     const all = this.pages[blockId] ?? [];
     const start = startCursor ? Number(startCursor) : 0;
@@ -55,7 +79,7 @@ export class FixtureNotionClient implements NotionBlockClient {
     return {
       results,
       has_more: next !== null,
-      next_cursor: next
+      next_cursor: next,
     };
   }
 
@@ -64,8 +88,11 @@ export class FixtureNotionClient implements NotionBlockClient {
       id: pageId,
       object: "page",
       properties: {
-        Name: { type: "title", title: [{ plain_text: "Demo Manuscript" }] }
-      }
+        wc: { id: "wc", type: "number", number: null },
+        lc: { id: "lc", type: "date", date: null },
+        ...this.properties[pageId],
+        Name: { type: "title", title: [{ plain_text: "Demo Manuscript" }] },
+      },
     };
   }
 
@@ -73,7 +100,7 @@ export class FixtureNotionClient implements NotionBlockClient {
     const pages: NotionPage[] = [
       notionPage(chapterOneId, "Chapter 1: The Lantern Room"),
       notionPage(chapterTwoId, "Chapter 2: Ink and Weather"),
-      notionPage(chapterThreeId, "Chapter 3: A Door in the Margin")
+      notionPage(chapterThreeId, "Chapter 3: A Door in the Margin"),
     ];
     const start = startCursor ? Number(startCursor) : 0;
     const results = pages.slice(start, start + 2);
@@ -95,7 +122,7 @@ function notionPage(id: string, title: string): NotionPage {
     id,
     object: "page",
     properties: {
-      Name: { type: "title", title: [{ plain_text: title }] }
-    }
+      Name: { type: "title", title: [{ plain_text: title }] },
+    },
   };
 }
