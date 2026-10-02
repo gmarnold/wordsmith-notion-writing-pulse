@@ -3,12 +3,12 @@ import postgres from "postgres";
 import { config } from "../config.js";
 import * as schema from "./schema.js";
 
-export function createDb() {
-  if (config.WORDSMITH_DEMO_MODE || !config.DATABASE_URL) {
+export function createDb(runtime = config) {
+  if (runtime.WORDSMITH_DEMO_MODE || !runtime.DATABASE_URL) {
     return null;
   }
 
-  const client = postgres(config.DATABASE_URL, { max: 5 });
+  const client = postgres(runtime.DATABASE_URL, { max: 5, connect_timeout: 5 });
   return drizzle(client, { schema });
 }
 

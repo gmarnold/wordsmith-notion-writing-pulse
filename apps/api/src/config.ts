@@ -1,43 +1,18 @@
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import dotenv from "dotenv";
-import { z } from "zod";
-
-const apiRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
+import { parseConfig } from "./environment.js";
+// Hosted/test execution never loads a developer's local credentials.
 const shellEnv = { ...process.env };
-dotenv.config();
-const appEnv = process.env.VITEST
-  ? {}
-  : (dotenv.config({ path: resolve(apiRoot, ".env") }).parsed ?? {});
-const mergedEnv = {
-  ...process.env,
-  ...appEnv,
-  ...shellEnv,
-  API_PORT: shellEnv.API_PORT ?? appEnv.API_PORT ?? process.env.API_PORT,
-  WEB_ORIGIN: shellEnv.WEB_ORIGIN ?? appEnv.WEB_ORIGIN ?? process.env.WEB_ORIGIN,
-};
-
-const booleanFromEnv = z.preprocess((value) => {
-  if (typeof value !== "string") return value;
-  if (["true", "1", "yes", "on"].includes(value.toLowerCase())) return true;
-  if (["false", "0", "no", "off", ""].includes(value.toLowerCase())) return false;
-  return value;
-}, z.boolean());
-
-const envSchema = z.object({
-  DATABASE_URL: z.string().url().optional(),
-  NOTION_WEBHOOK_VERIFICATION_TOKEN: z.string().optional(),
-  NOTION_WEBHOOK_SETUP: booleanFromEnv.default(false),
-  NOTION_TOKEN: z.string().optional(),
-  WORDSMITH_DEMO_MODE: booleanFromEnv.default(false),
-  PUBLIC_PORT: z.coerce.number().int().positive().default(4142),
-  PUBLIC_ORIGIN: z.string().url().optional(),
-  API_PORT: z.coerce.number().int().positive().default(4141),
-  WEB_ORIGIN: z.string().default("http://localhost:5173"),
-});
-
-export const config = envSchema.parse(mergedEnv);
-
-export function notionTokenStatus(): "configured" | "missing" {
-  return config.NOTION_TOKEN && config.NOTION_TOKEN.trim().length > 0 ? "configured" : "missing";
+const local =
+  shellEnv.NODE_ENV === "production" || shellEnv.NODE_ENV === "test" || shellEnv.VITEST
+    ? {}
+    : {
+        ...dotenv.config().parsed,
+        ...dotenv.config({ path: resolve(dirname(fileURLToPath(import.meta.url)), "../.env") })
+          .parsed,
+      };
+export const config = parseConfig({ ...local, ...shellEnv });
+export function notionTokenStatus() {
+  return config.NOTION_TOKEN?.trim() ? "configured" : "missing";
 }
