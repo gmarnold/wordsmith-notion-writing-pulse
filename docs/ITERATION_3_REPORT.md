@@ -36,5 +36,5 @@ Status: implementation prepared and locally validated; external hosting checkpoi
 - `npm audit --omit=dev`: zero vulnerabilities. Full audit: four moderate development-only generation-tool findings, zero high/critical.
 - `render.yaml`: structurally validated against Render's current public JSON schema without accessing an account or provisioning resources.
 - `git diff --check`: clean.
-- GitHub CI: pending publication/run; record its actual result after the run.
+- GitHub CI: [run 36966268734](https://github.com/gmarnold/wordsmith-notion-writing-pulse/actions/runs/36966268734) passed on the published implementation revision `8d3ef3d`, including the native PostgreSQL 18 migration/overlapping-worker check, lint, typecheck, build and all three Chromium tests. The local native-database skip is covered by this CI run.
 - Public URLs, paid account setup, real hosted Notion delivery/property write-back and the computer-off gate: **pending**, not passed.
