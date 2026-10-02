@@ -1,0 +1,43 @@
+# Paid plans are intentional: free web services sleep; free Postgres expires.
+services:
+  - type: web
+    name: wordsmith
+    runtime: node
+    plan: 0.5c-512mb
+    region: ohio
+    branch: main
+    numInstances: 1
+    autoDeployTrigger: checksPass
+    buildCommand: npm ci --include=dev && npm run build
+    preDeployCommand: npm run db:migrate:production -w @wordsmith/api
+    startCommand: npm start
+    healthCheckPath: /api/health
+    maxShutdownDelaySeconds: 120
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: NODE_ENV
+        value: production
+      - key: WORDSMITH_DEMO_MODE
+        value: "false"
+      - key: DATABASE_URL
+        fromDatabase:
+          name: wordsmith-postgres
+          property: connectionString
+      - key: NOTION_TOKEN
+        sync: false
+      - key: ADMIN_PASSWORD_HASH
+        sync: false
+      - key: SESSION_SECRET
+        sync: false
+      - key: NOTION_WEBHOOK_SETUP
+        sync: false
+databases:
+  - name: wordsmith-postgres
+    plan: 0.1c-256mb
+    region: ohio
+    databaseName: wordsmith
+    user: wordsmith
+    postgresMajorVersion: "18"
+    diskSizeGB: 1
+    ipAllowList: []
